@@ -1,0 +1,44 @@
+config.json: 624B [00:00, 20.9kB/s]
+model.safetensors: 100%|█████████████████████████████████████████████████████████████████████████████| 412M/412M [00:45<00:00, 9.15MB/s]
+Loading weights: 100%|████████████████████████████████| 199/199 [00:00<00:00, 2919.89it/s, Materializing param=bert.pooler.dense.weight]
+BertForSequenceClassification LOAD REPORT from: google-bert/bert-base-chinese
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.seq_relationship.bias                  | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.seq_relationship.weight                | UNEXPECTED | 
+classifier.bias                            | MISSING    | 
+classifier.weight                          | MISSING    | 
+
+Notes:
+- UNEXPECTED    :can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING       :those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+------------Epoch: 0 ----------------
+Epoch: 0, Average training loss: 2.1700
+Accuracy: 0.7857
+Average testing loss: 1.6630
+-------------------------------
+------------Epoch: 1 ----------------
+Epoch: 1, Average training loss: 1.2839
+Accuracy: 0.9107
+Average testing loss: 0.8717
+-------------------------------
+------------Epoch: 2 ----------------
+Epoch: 2, Average training loss: 0.6558
+Accuracy: 0.9554
+Average testing loss: 0.3706
+-------------------------------
+------------Epoch: 3 ----------------
+Epoch: 3, Average training loss: 0.2838
+Accuracy: 0.9196
+Average testing loss: 0.3066
+-------------------------------
+Writing model shards: 100%|███████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  1.48it/s]
+模型已保存至: ./my_bert_intent_model
+【新样本测试】
+输入: 帮我查一下明天去上海的机票
+预测意图: Travel-Query
