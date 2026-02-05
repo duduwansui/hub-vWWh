@@ -1,0 +1,33 @@
+PS E:\第4周：Transfomer和BERT、GPT模型\01-intent-classify\01-intent-classify> # 推荐方式：使用 FastAPI CLI 启动
+>> & C:/Users/lenovo/AppData/Local/Programs/Python/Python312/python.exe -m fastapi run main.py
+
+   FastAPI   Starting production server 🚀
+ 
+             Searching for package file structure from directories with __init__.py files
+             Importing from E:\第4周：Transfomer和BERT、GPT模型\01-intent-classify\01-intent-classify
+ 
+    module   🐍 main.py
+ 
+      code   Importing the FastAPI app object from the module with the following code:
+ 
+             from main import app
+
+       app   Using import string: main:app
+
+    server   Server started at http://0.0.0.0:8000
+    server   Documentation at http://0.0.0.0:8000/docs
+
+             Logs:
+
+      INFO   Started server process [34328]
+2026-02-05 23:44:14,342 - uvicorn.error - INFO - Started server process [34328]
+      INFO   Waiting for application startup.
+2026-02-05 23:44:14,354 - uvicorn.error - INFO - Waiting for application startup.
+      INFO   Application startup complete.
+2026-02-05 23:44:14,366 - uvicorn.error - INFO - Application startup complete.
+      INFO   Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2026-02-05 23:44:14,376 - uvicorn.error - INFO - Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit) 
+      INFO   127.0.0.1:63844 - "GET / HTTP/1.1" 404
+      INFO   127.0.0.1:63844 - "GET /favicon.ico HTTP/1.1" 404
+      INFO   127.0.0.1:51307 - "GET /docs HTTP/1.1" 200
+      INFO   127.0.0.1:50517 - "GET /openapi.json HTTP/1.1" 200
