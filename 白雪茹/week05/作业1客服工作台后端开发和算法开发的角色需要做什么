@@ -1,0 +1,210 @@
+作业1：后端开发与算法开发分别需要做什么
+A. 后端开发要做什么（可上线的工程闭环）
+1）核心数据模型与数据库设计（建议 MySQL/PostgreSQL + 向量库/向量索引）
+
+你这个系统本质是：“FAQ 管理 + 语义检索(TopK) + 命中后返回答案”。数据库至少要覆盖：类目、FAQ 主体、问法变体、版本/生效时间、向量索引状态、命中日志。
+
+推荐表设计（概念级）：
+
+faq_category
+
+id
+
+parent_id（一级类目 parent_id=0；二级类目指向一级）
+
+name
+
+sort
+
+status（启用/停用）
+
+created_at updated_at
+
+faq_item（一条“标准FAQ”）
+
+id
+
+category_lv1_id, category_lv2_id
+
+canonical_question（标准问法：展示用/管理用）
+
+answer（富文本/markdown/纯文本）
+
+effective_from, effective_to（生效时间窗；to 允许为空）
+
+status（草稿/生效/下线）
+
+creator_id, updater_id
+
+created_at updated_at
+
+faq_question_variant（待选提问 + 相似提问）
+
+id
+
+faq_item_id
+
+text（用户可能提的问法）
+
+variant_type（candidate / similar / mined_from_logs）
+
+is_active（是否参与检索）
+
+created_at
+
+faq_embedding_index（索引状态，便于增量更新/回滚）
+
+id
+
+faq_item_id（或 variant_id，取决于你用“标准问法”还是“所有变体”做向量索引）
+
+text_hash（用于去重与变更检测）
+
+embedding_vector（如果不用独立向量库，可存二进制；更推荐向量库/向量索引存）
+
+model_version
+
+indexed_at
+
+index_status（pending/indexed/failed）
+
+faq_hit_log（检索与命中日志，离线挖掘相似问法/评估模型）
+
+id
+
+session_id / user_id
+
+query_text
+
+topk_ids（或单独表）
+
+chosen_id（最终返回/用户点击的FAQ）
+
+score
+
+created_at
+
+工程关键点：“FAQ 管理系统是可追溯的内容系统”，生效时间/版本/下线必须可控，不然线上回答会乱。
+
+2）FAQ 管理后台接口（功能1/2落地）
+
+类目管理：增删改查、排序、启停、树结构返回（一级/二级）
+
+FAQ 管理：创建/编辑/发布/下线，生效时间窗校验（避免重叠或冲突）
+
+变体管理：为每条 FAQ 维护“待选提问 / 相似提问”
+
+导入导出：CSV/Excel 批量录入（客服类项目很常见）
+
+审核流（可选但很实用）：草稿→待审核→生效
+
+3）在线检索服务（最关键的一条链）
+
+用户问句 → 预处理 → 向量编码 → 向量召回 TopK →（可选）交叉编码精排 → 返回答案
+
+后端要负责：
+
+请求路由与限流
+
+召回服务（向量库查询）
+
+结果阈值判断（低于阈值不瞎答）
+
+业务兜底：
+
+命中失败：引导转人工/收集问题入库
+
+命中多个：返回 Top3 + 引导用户点选
+
+缓存：高频问句/热FAQ缓存
+
+监控：命中率、人工转接率、Top1/Top3准确率、延迟
+
+4）向量索引与增量更新机制
+
+FAQ 被编辑/新增/下线，会影响索引。后端要有：
+
+异步任务队列（如 Celery/RQ/Kafka）：更新 embedding + 写入向量索引
+
+模型版本管理：模型升级要能“重建索引/灰度”
+
+一致性策略：FAQ 生效时间窗变化也要同步影响检索可见性（过滤）
+
+5）文本去重与相似问法挖掘（业务闭环）
+
+你提了“文本去重”。后端要配合：
+
+text_hash（标准化后hash）做硬去重（完全一致）
+
+相似去重（近似重复）：交给算法侧产出“重复聚类/近重复判定”，后端提供审核入口与合并机制
+
+B. 算法开发要做什么（模型、训练、评估、线上策略）
+1）明确任务拆分：召回 vs 精排
+
+召回（Embedding）：快速从知识库里找 TopK 候选（K=20/50）
+
+精排（Cross-Encoder，可选）：对 TopK 做更准的相似度打分，输出 Top3/Top1
+
+你现在的描述“Top3匹配准确率94%”非常像：Embedding 召回 +（可能）轻量精排的指标。
+
+2）无监督句子相似度怎么做（面试点之一）
+
+无监督的关键是：不靠标注对，靠数据增强构造正样本。
+
+可选路线：
+
+SimCSE 无监督：同一句子两次dropout视为正对，其它句子为负对（InfoNCE）
+
+TSDAE（句子去噪自编码）等自监督句向量学习
+
+先无监督预训练，再用少量人工标注/点击日志做弱监督微调（通常效果更稳）
+
+3）样本如何构造（面试点之二）
+
+你这个业务天然有几类数据源：
+
+FAQ 标准问法 + 相似提问（你维护的变体）：天然正例
+
+历史用户问句日志 + 最终人工选择/用户点击：强弱监督信号
+
+FAQ 类目：同类目内部更容易构造 hard negative（难负例）
+
+典型构造：
+
+正例：(query, matched_faq_question_variant)
+
+难负例：同二级类目但不同faq的问法；或者 TopK 召回里分数高但实际不匹配的候选
+
+普通负例：随机采样其它类目的问法
+
+4）损失函数与训练细节（面试点之三）
+
+SBERT 常用：对比学习 / 多负例 ranking loss
+
+SimCSE：InfoNCE / NT-Xent（batch 内其它样本充当负例）
+
+训练 trick：
+
+batch 要大（或用 in-batch negatives）
+
+温度参数、dropout、pooling（mean pooling 常用）
+
+embedding 归一化（cosine）
+
+hard negative mining（迭代提升）
+
+5）线上如何得到“最相似文本”
+
+线上一般是：
+
+把 FAQ（标准问法或所有变体）都编码成向量并入库
+
+用户问句编码成向量
+
+余弦相似度检索 TopK
+
+阈值过滤（比如 cosine < 0.55 认为不可靠）
+
+返回 Top1 或 Top3 供用户选择
+
+记录日志用于再训练与扩充变体
